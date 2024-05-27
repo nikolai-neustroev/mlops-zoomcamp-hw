@@ -13,3 +13,5 @@ A4: mlflow server -p 5001 --backend-store-uri sqlite:///mlflow.db --default-arti
 Q5. Tune model hyperparameters: What's the best validation RMSE that you got?
 A5: 5.335 (over 15 trials)
 
+Q6. Promote the best model to the model registry: What is the test RMSE of the best model?
+A6: 5.567
