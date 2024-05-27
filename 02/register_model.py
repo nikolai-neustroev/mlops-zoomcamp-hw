@@ -2,6 +2,7 @@ import os
 import pickle
 import click
 import mlflow
+import logging
 
 from mlflow.entities import ViewType
 from mlflow.tracking import MlflowClient
@@ -12,7 +13,7 @@ HPO_EXPERIMENT_NAME = "random-forest-hyperopt"
 EXPERIMENT_NAME = "random-forest-best-models"
 RF_PARAMS = ['max_depth', 'n_estimators', 'min_samples_split', 'min_samples_leaf', 'random_state']
 
-mlflow.set_tracking_uri("http://127.0.0.1:5001")
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
 mlflow.set_experiment(EXPERIMENT_NAME)
 mlflow.sklearn.autolog()
 
@@ -38,8 +39,11 @@ def train_and_log_model(data_path, params):
         # Evaluate model on the validation and test sets
         val_rmse = mean_squared_error(y_val, rf.predict(X_val), squared=False)
         mlflow.log_metric("val_rmse", val_rmse)
-        test_rmse = mean_squared_error(y_test, rf.predict(X_test), squared=False)
-        mlflow.log_metric("test_rmse", test_rmse)
+        try:
+            test_rmse = mean_squared_error(y_test, rf.predict(X_test), squared=False)
+            mlflow.log_metric("test_rmse", test_rmse)
+        except Exception as e:
+            logging.warning(e)
 
 
 @click.command()
@@ -77,10 +81,11 @@ def run_register_model(data_path: str, top_n: int):
         max_results=1,
         order_by=["metrics.test_rmse ASC"]
     )[0]
-    print(f'Best run: {best_run}')
+    best_run_id = best_run.info.run_id
+    model_name = best_run.data.tags['estimator_name']
 
     # Register the best model
-    mlflow.register_model(f"runs:/{best_run}/model")
+    mlflow.register_model(f"runs:/{best_run_id}/model", model_name)
 
 
 if __name__ == '__main__':
